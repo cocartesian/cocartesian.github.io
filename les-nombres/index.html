@@ -6,8 +6,8 @@
     <title>Exercices de Nombres Français</title>
     <style>
         :root {
-            --primary: #002395; /* Blue */
-            --secondary: #ED2939; /* Red */
+            --primary: #002395;
+            --secondary: #ED2939;
             --bg: #f0f2f5;
             --white: #ffffff;
         }
@@ -81,13 +81,13 @@
         }
 
         #number-display {
-            font-size: 3.5rem;
+            font-size: 2.5rem;
             font-weight: bold;
             margin: 1.5rem 0;
             color: var(--secondary);
+            word-wrap: break-word;
         }
 
-        /* MODAL STYLES */
         .modal-overlay {
             position: fixed;
             top:0; left:0; width: 100%; height: 100%;
@@ -117,8 +117,8 @@
             <div class="form-group">
                 <label>Mode:</label>
                 <select id="game-mode">
-                    <option value="text">Saisir le nom (Write Name)</option>
-                    <option value="choice">QCM (Multiple Choice)</option>
+                    <option value="text">Saisir le nom</option>
+                    <option value="choice">QCM</option>
                 </select>
             </div>
             <div class="form-group">
@@ -126,11 +126,15 @@
                 <input type="number" id="total-rounds" value="5">
             </div>
             <div class="form-group">
-                <label>Nombre Max (Ex: 100):</label>
-                <input type="number" id="max-range" value="100">
+                <label>Nombre Minimum (Min 1):</label>
+                <input type="number" id="min-range" value="1" min="1">
             </div>
             <div class="form-group">
-                <label>Vies (Attempts):</label>
+                <label>Nombre Max (Max 1.000.000):</label>
+                <input type="number" id="max-range" value="1000" min="1" max="1000000">
+            </div>
+            <div class="form-group">
+                <label>Vies:</label>
                 <input type="number" id="lives-input" value="3">
             </div>
             <button onclick="startGame()">Commencer le Run</button>
@@ -139,14 +143,14 @@
         <div id="game-screen" class="hidden">
             <div class="stats-bar">
                 <span>❤️ <span id="lives">0</span></span>
-                <span>⭐ <span id="score">0</span></span>
+                <span>✅ <span id="score">0</span></span>
                 <span>📋 <span id="progress">0</span></span>
             </div>
             
             <div id="number-display"></div>
 
             <div id="mode-text" class="hidden">
-                <input type="text" id="text-input" placeholder="Écrivez en français..." autofocus>
+                <input type="text" id="text-input" placeholder="Écrivez en français..." autocomplete="off">
                 <button onclick="handleTextSubmit()">Valider</button>
             </div>
 
@@ -174,13 +178,30 @@
     </div>
 
     <script>
-        // --- French Number Logic ---
         const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
         const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
         const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
 
         function toFrench(n) {
             if (n === 0) return 'zéro';
+            if (n === 1000000) return 'un million';
+            
+            let parts = [];
+            if (n >= 1000) {
+                let thousands = Math.floor(n / 1000);
+                if (thousands === 1) {
+                    parts.push('mille');
+                } else {
+                    parts.push(convertUnder1000(thousands) + ' mille');
+                }
+                n %= 1000;
+            }
+            if (n > 0) parts.push(convertUnder1000(n));
+            return parts.join(' ').replace(/  +/g, ' ').trim();
+        }
+
+        function convertUnder1000(n) {
+            if (n === 0) return '';
             if (n < 10) return units[n];
             if (n < 20) return teens[n - 10];
             if (n < 100) {
@@ -191,22 +212,24 @@
                 if (u === 1) return tens[t] + '-et-un';
                 return tens[t] + '-' + units[u];
             }
-            if (n < 1000) {
-                let h = Math.floor(n / 100), r = n % 100;
-                let hStr = (h === 1) ? 'cent' : units[h] + ' cent';
-                if (r === 0) return hStr + (h > 1 ? 's' : '');
-                return hStr + ' ' + toFrench(r);
-            }
-            return n.toString();
+            let h = Math.floor(n / 100), r = n % 100;
+            let hStr = (h === 1) ? 'cent' : units[h] + ' cent';
+            if (r === 0 && h > 1) hStr += 's';
+            return hStr + (r > 0 ? ' ' + convertUnder1000(r) : '');
         }
 
-        // --- Game Logic ---
-        let game = { lives: 0, score: 0, total: 0, current: 0, max: 100, mode: '', target: 0 };
+        let game = { lives: 0, score: 0, total: 0, current: 0, min: 1, max: 1000, mode: '', target: 0 };
 
         function startGame() {
             game.mode = document.getElementById('game-mode').value;
             game.total = parseInt(document.getElementById('total-rounds').value);
-            game.max = parseInt(document.getElementById('max-range').value);
+            game.min = parseInt(document.getElementById('min-range').value) || 1;
+            game.max = parseInt(document.getElementById('max-range').value) || 1000;
+            
+            if (game.min < 1) game.min = 1;
+            if (game.max > 1000000) game.max = 1000000;
+            if (game.min > game.max) game.min = game.max;
+
             game.lives = parseInt(document.getElementById('lives-input').value);
             game.score = 0;
             game.current = 0;
@@ -221,7 +244,7 @@
                 return;
             }
             game.current++;
-            game.target = Math.floor(Math.random() * game.max) + 1;
+            game.target = Math.floor(Math.random() * (game.max - game.min + 1)) + game.min;
             
             updateUI();
             
@@ -242,12 +265,8 @@
             container.innerHTML = '';
             
             let options = [game.target];
-            const digits = game.target.toString().length;
-            const min = Math.pow(10, digits - 1);
-            const max = Math.min(game.max, Math.pow(10, digits) - 1);
-
             while(options.length < 4) {
-                let r = Math.floor(Math.random() * (max - min + 1)) + min;
+                let r = Math.floor(Math.random() * (game.max - game.min + 1)) + game.min;
                 if (!options.includes(r)) options.push(r);
             }
             options.sort(() => Math.random() - 0.5);
@@ -262,14 +281,11 @@
         }
 
         function handleTextSubmit() {
-			// Helper function to normalize strings
-			const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, '-');
-
-			const val = normalize(document.getElementById('text-input').value);
-			const target = normalize(toFrench(game.target));
-
-			validate(val === target);
-		}
+            const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ').replace(/-/g, ' ');
+            const val = normalize(document.getElementById('text-input').value);
+            const target = normalize(toFrench(game.target));
+            validate(val === target);
+        }
 
         function validate(isCorrect) {
             if (isCorrect) {
@@ -295,7 +311,7 @@
             document.getElementById('lives').innerText = game.lives;
             document.getElementById('score').innerText = game.score;
             document.getElementById('progress').innerText = `${game.current}/${game.total}`;
-            document.getElementById('number-display').innerText = game.target;
+            document.getElementById('number-display').innerText = game.target.toLocaleString('fr-FR');
         }
 
         function endGame() {
