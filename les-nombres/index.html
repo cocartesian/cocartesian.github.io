@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercices de Nombres Français</title>
+    <style>
+        :root {
+            --primary: #002395; /* Blue */
+            --secondary: #ED2939; /* Red */
+            --bg: #f0f2f5;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+        h1 { color: var(--primary); margin-top: 0; }
+        
+        .form-group { text-align: left; margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.3rem; font-weight: 600; color: #444; }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover { filter: brightness(1.2); }
+
+        .option-btn {
+            background: #fff;
+            color: #333;
+            border: 2px solid #eee;
+            margin: 5px 0;
+        }
+        .option-btn:hover { border-color: var(--primary); background: #f8f9ff; }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        #number-display {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin: 1.5rem 0;
+            color: var(--secondary);
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            top:0; left:0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 300px;
+            width: 80%;
+            text-align: center;
+        }
+        .modal h2 { color: var(--secondary); margin-top: 0; }
+        .modal p { font-size: 1.2rem; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="setup-screen">
+            <h1>Paramètres</h1>
+            <div class="form-group">
+                <label>Mode:</label>
+                <select id="game-mode">
+                    <option value="text">Saisir le nom (Write Name)</option>
+                    <option value="choice">QCM (Multiple Choice)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nombre d'exercices:</label>
+                <input type="number" id="total-rounds" value="5">
+            </div>
+            <div class="form-group">
+                <label>Nombre Max (Ex: 100):</label>
+                <input type="number" id="max-range" value="100">
+            </div>
+            <div class="form-group">
+                <label>Vies (Attempts):</label>
+                <input type="number" id="lives-input" value="3">
+            </div>
+            <button onclick="startGame()">Commencer le Run</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="stats-bar">
+                <span>❤️ <span id="lives">0</span></span>
+                <span>⭐ <span id="score">0</span></span>
+                <span>📋 <span id="progress">0</span></span>
+            </div>
+            
+            <div id="number-display"></div>
+
+            <div id="mode-text" class="hidden">
+                <input type="text" id="text-input" placeholder="Écrivez en français..." autofocus>
+                <button onclick="handleTextSubmit()">Valider</button>
+            </div>
+
+            <div id="mode-choice" class="hidden">
+                <div id="choice-container"></div>
+            </div>
+
+            <button onclick="resetApp()" style="background: #666; margin-top: 30px; font-size: 0.8rem;">Menu Principal</button>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h1 id="result-title">Fin de partie</h1>
+            <p>Score final: <strong id="final-score"></strong></p>
+            <button onclick="resetApp()">Rejouer</button>
+        </div>
+    </div>
+
+    <div id="modal-container" class="modal-overlay hidden">
+        <div class="modal">
+            <h2>Incorrect !</h2>
+            <p>La réponse était :</p>
+            <p><strong id="correct-answer-text"></strong></p>
+            <button onclick="closeModal()">Continuer</button>
+        </div>
+    </div>
+
+    <script>
+        // --- French Number Logic ---
+        const units = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+        const teens = ['dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize', 'dix-sept', 'dix-huit', 'dix-neuf'];
+        const tens = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+
+        function toFrench(n) {
+            if (n === 0) return 'zéro';
+            if (n < 10) return units[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) {
+                let t = Math.floor(n / 10), u = n % 10;
+                if (t === 7) return (u === 1) ? 'soixante et onze' : 'soixante-' + teens[u];
+                if (t === 9) return 'quatre-vingt-' + teens[u];
+                if (u === 0) return tens[t];
+                if (u === 1) return tens[t] + '-et-un';
+                return tens[t] + '-' + units[u];
+            }
+            if (n < 1000) {
+                let h = Math.floor(n / 100), r = n % 100;
+                let hStr = (h === 1) ? 'cent' : units[h] + ' cent';
+                if (r === 0) return hStr + (h > 1 ? 's' : '');
+                return hStr + ' ' + toFrench(r);
+            }
+            return n.toString();
+        }
+
+        // --- Game Logic ---
+        let game = { lives: 0, score: 0, total: 0, current: 0, max: 100, mode: '', target: 0 };
+
+        function startGame() {
+            game.mode = document.getElementById('game-mode').value;
+            game.total = parseInt(document.getElementById('total-rounds').value);
+            game.max = parseInt(document.getElementById('max-range').value);
+            game.lives = parseInt(document.getElementById('lives-input').value);
+            game.score = 0;
+            game.current = 0;
+
+            showScreen('game-screen');
+            nextExercise();
+        }
+
+        function nextExercise() {
+            if (game.current >= game.total || game.lives <= 0) {
+                endGame();
+                return;
+            }
+            game.current++;
+            game.target = Math.floor(Math.random() * game.max) + 1;
+            
+            updateUI();
+            
+            if (game.mode === 'text') {
+                document.getElementById('mode-text').classList.remove('hidden');
+                document.getElementById('mode-choice').classList.add('hidden');
+                document.getElementById('text-input').value = '';
+                document.getElementById('text-input').focus();
+            } else {
+                document.getElementById('mode-text').classList.add('hidden');
+                document.getElementById('mode-choice').classList.remove('hidden');
+                setupChoices();
+            }
+        }
+
+        function setupChoices() {
+            const container = document.getElementById('choice-container');
+            container.innerHTML = '';
+            
+            let options = [game.target];
+            const digits = game.target.toString().length;
+            const min = Math.pow(10, digits - 1);
+            const max = Math.min(game.max, Math.pow(10, digits) - 1);
+
+            while(options.length < 4) {
+                let r = Math.floor(Math.random() * (max - min + 1)) + min;
+                if (!options.includes(r)) options.push(r);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(num => {
+                const b = document.createElement('button');
+                b.className = 'option-btn';
+                b.innerText = toFrench(num);
+                b.onclick = () => validate(num === game.target);
+                container.appendChild(b);
+            });
+        }
+
+        function handleTextSubmit() {
+			// Helper function to normalize strings
+			const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, '-');
+
+			const val = normalize(document.getElementById('text-input').value);
+			const target = normalize(toFrench(game.target));
+
+			validate(val === target);
+		}
+
+        function validate(isCorrect) {
+            if (isCorrect) {
+                game.score++;
+                nextExercise();
+            } else {
+                game.lives--;
+                showModal(toFrench(game.target));
+            }
+        }
+
+        function showModal(correctAnswer) {
+            document.getElementById('correct-answer-text').innerText = correctAnswer;
+            document.getElementById('modal-container').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-container').classList.add('hidden');
+            nextExercise();
+        }
+
+        function updateUI() {
+            document.getElementById('lives').innerText = game.lives;
+            document.getElementById('score').innerText = game.score;
+            document.getElementById('progress').innerText = `${game.current}/${game.total}`;
+            document.getElementById('number-display').innerText = game.target;
+        }
+
+        function endGame() {
+            showScreen('end-screen');
+            document.getElementById('result-title').innerText = game.lives > 0 ? "Félicitations !" : "Partie terminée";
+            document.getElementById('final-score').innerText = `${game.score} / ${game.total}`;
+        }
+
+        function showScreen(id) {
+            ['setup-screen', 'game-screen', 'end-screen'].forEach(s => {
+                document.getElementById(s).classList.add('hidden');
+            });
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function resetApp() {
+            showScreen('setup-screen');
+        }
+    </script>
+</body>
+</html>
