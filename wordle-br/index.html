@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Palavra PWA</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="stylesheet" href="./styles.css">
+    <meta name="theme-color" content="#121213">
+</head>
+<body>
+    <header>
+        <select id="mode-selector">
+            <option value="infinito">Infinito</option>
+            <option value="hard">Hard Mode</option>
+            <option value="speed">Speed</option>
+            <option value="maratona">Maratona</option>
+            <option value="dordle">Dordle</option>
+            <option value="quordle">Quordle</option>
+        </select>
+        <h1 id="title">TERMO PWA</h1>
+        <button id="btn-stats">📊</button>
+    </header>
+    
+    <div id="game-container">
+        <div id="boards-wrapper"></div>
+    </div>
+
+    <div id="keyboard"></div>
+
+    <div id="message-container"></div>
+
+    <!-- O dicionário injeta window.WORD_DATA -->
+    <script src="./data/words.js"></script>
+    <script src="./src/app.js" type="module"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>

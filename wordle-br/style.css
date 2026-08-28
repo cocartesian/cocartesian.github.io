@@ -1,0 +1,46 @@
+:root {
+    --bg-color: #121213;
+    --text-color: #ffffff;
+    --key-bg: #818384;
+    --key-bg-gray: #3a3a3c;
+    --key-bg-yellow: #b59f3b;
+    --key-bg-green: #538d4e;
+    --border-color: #3a3a3c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overscroll-behavior: none; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--border-color); }
+select, button { background: var(--key-bg); color: #fff; border: none; padding: 8px; border-radius: 4px; }
+
+#game-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow-y: auto; padding: 10px; }
+#boards-wrapper { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+
+.board { display: grid; grid-template-rows: repeat(6, 1fr); gap: 5px; }
+/* Quordle usa 9 tentativas, adicionado via JS */
+.row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.tile { width: 50px; height: 50px; border: 2px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-size: 1.8rem; font-weight: bold; text-transform: uppercase; }
+
+.tile.green { background: var(--key-bg-green); border-color: var(--key-bg-green); }
+.tile.yellow { background: var(--key-bg-yellow); border-color: var(--key-bg-yellow); }
+.tile.gray { background: var(--key-bg-gray); border-color: var(--key-bg-gray); }
+
+#keyboard { padding: 10px; display: flex; flex-direction: column; gap: 8px; margin-bottom: env(safe-area-inset-bottom); }
+.key-row { display: flex; justify-content: center; gap: 6px; }
+.key { background: var(--key-bg); border-radius: 4px; min-width: 30px; flex: 1; height: 50px; display: flex; justify-content: center; align-items: center; font-weight: bold; cursor: pointer; text-transform: uppercase; user-select: none; }
+.key.large { flex: 1.5; font-size: 0.8rem; }
+.key.green { background: var(--key-bg-green); }
+.key.yellow { background: var(--key-bg-yellow); }
+.key.gray { background: var(--key-bg-gray); }
+
+#message-container { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+.message { background: #fff; color: #000; padding: 15px; border-radius: 8px; font-weight: bold; animation: fade 2s forwards; }
+
+@keyframes fade { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Responsividade Mobile para Quordle */
+@media (max-width: 600px) {
+    .tile { width: 40px; height: 40px; font-size: 1.5rem; }
+    .board-quordle .tile { width: 30px; height: 30px; font-size: 1.2rem; gap: 3px; }
+    #boards-wrapper { gap: 10px; }
+}

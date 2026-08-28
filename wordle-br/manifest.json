@@ -1,0 +1,20 @@
+{
+  "name": "Termo PWA Completo",
+  "short_name": "TermoPWA",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#121213",
+  "theme_color": "#121213",
+  "icons": [
+    {
+      "src": "https://www.w3.org/Icons/pwa/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://www.w3.org/Icons/pwa/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
