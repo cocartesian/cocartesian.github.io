@@ -3,23 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Palavra PWA</title>
+    <title>Termo PWA</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./styles.css">
     <meta name="theme-color" content="#121213">
 </head>
 <body>
     <header>
-        <select id="mode-selector">
-            <option value="infinito">Infinito</option>
-            <option value="hard">Hard Mode</option>
-            <option value="speed">Speed</option>
-            <option value="maratona">Maratona</option>
-            <option value="dordle">Dordle</option>
-            <option value="quordle">Quordle</option>
-        </select>
-        <h1 id="title">TERMO PWA</h1>
-        <button id="btn-stats">📊</button>
+        <div class="header-left">
+            <select id="mode-selector">
+                <option value="infinito">Infinito</option>
+                <option value="hard">Hard Mode</option>
+                <option value="speed">Speed</option>
+                <option value="maratona">Maratona</option>
+                <option value="dordle">Dordle</option>
+                <option value="quordle">Quordle</option>
+            </select>
+        </div>
+        <h1 id="title">TERMO</h1>
+        <div class="header-actions">
+            <button id="btn-stats" title="Estatísticas">📊</button>
+            <button id="btn-settings" title="Configurações">⚙️</button>
+        </div>
     </header>
     
     <div id="game-container">
@@ -29,6 +34,18 @@
     <div id="keyboard"></div>
 
     <div id="message-container"></div>
+
+    <!-- Modals -->
+    <div id="modal-overlay" class="hidden"></div>
+    
+    <div id="settings-modal" class="modal hidden">
+        <h2>Configurações</h2>
+        <div class="modal-content">
+            <button id="btn-install" class="action-btn" style="display: none;">📥 Instalar Aplicativo (PWA)</button>
+            <p id="install-msg" style="font-size: 0.9rem; color: #818384;">O aplicativo já está instalado ou seu navegador não suporta a instalação direta.</p>
+        </div>
+        <button class="close-modal action-btn">Fechar</button>
+    </div>
 
     <!-- O dicionário injeta window.WORD_DATA -->
     <script src="./data/words.js"></script>

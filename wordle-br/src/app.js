@@ -21,10 +21,8 @@ let state = {
     answers: [],
     guesses: [],
     currentGuess: "",
-    boardStatuses: [], // 'playing', 'won', 'lost'
+    boardStatuses: [],
     gameOver: false,
-    speedTime: 60,
-    marathonLives: 3,
 };
 
 // === GERENCIAMENTO DA BAG (50% Regra) ===
@@ -39,7 +37,7 @@ function getNextWord() {
     } while (bag.includes(candidate) && bag.length < DICTIONARY.answerWords.length);
 
     bag.push(candidate);
-    if (bag.length > maxBagSize) bag.shift(); // Remove a mais antiga
+    if (bag.length > maxBagSize) bag.shift();
 
     localStorage.setItem('wordBag', JSON.stringify(bag));
     return candidate;
@@ -86,7 +84,6 @@ function renderBoards() {
                 tile.className = 'tile';
                 tile.textContent = wordToDraw[c] || "";
                 if (feedback && state.boardStatuses[b] !== 'lost_early') {
-                    // Impede pintar boards já resolvidos no passado
                     const wonAt = state.guesses.findIndex(g => g === state.answers[b]);
                     if (wonAt === -1 || r <= wonAt) {
                          tile.classList.add(feedback[c]);
@@ -109,6 +106,7 @@ function showMessage(msg) {
     setTimeout(() => div.remove(), 2000);
 }
 
+// === TECLADO VIRTUAL & FÍSICO ===
 function handleInput(key) {
     if (state.gameOver) return;
 
@@ -129,7 +127,6 @@ function handleInput(key) {
                 return;
             }
         }
-        
         commitGuess();
     } else if (key === 'Backspace' || key === 'Del') {
         state.currentGuess = state.currentGuess.slice(0, -1);
@@ -167,7 +164,7 @@ function commitGuess() {
         state.gameOver = true;
         showMessage("Impressionante!");
         saveStats(true);
-        setTimeout(initGame, 2500); // Loop infinito automático
+        setTimeout(initGame, 2500);
     } else if (anyLost) {
         state.gameOver = true;
         showMessage(state.answers.map(a => a.toUpperCase()).join(" / "));
@@ -176,8 +173,7 @@ function commitGuess() {
     }
 }
 
-// === TECLADO ===
-const keys = [
+const keysLayout = [
     ['q','w','e','r','t','y','u','i','o','p'],
     ['a','s','d','f','g','h','j','k','l'],
     ['Enter','z','x','c','v','b','n','m','Del']
@@ -186,7 +182,7 @@ const keys = [
 function buildKeyboard() {
     const kb = document.getElementById('keyboard');
     kb.innerHTML = '';
-    keys.forEach(row => {
+    keysLayout.forEach(row => {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'key-row';
         row.forEach(key => {
@@ -205,7 +201,7 @@ function updateKeyboardColors() {
     const keyColors = {};
     state.guesses.forEach(guess => {
         state.answers.forEach((ans, b) => {
-            if(state.boardStatuses[b] === 'won' && guess !== ans) return; // Evita manchar cor após vitoria no dordle
+            if(state.boardStatuses[b] === 'won' && guess !== ans) return; 
             const feedback = evaluateGuess(guess, ans);
             for (let i = 0; i < 5; i++) {
                 const letter = guess[i];
@@ -239,15 +235,58 @@ function saveStats(won) {
     localStorage.setItem(`stats_${currentMode}`, JSON.stringify(stats));
 }
 
-// === INICIALIZAÇÃO ===
-document.addEventListener('keydown', e => handleInput(e.key));
+// === PWA INSTALLATION ===
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('btn-install').style.display = 'block';
+    document.getElementById('install-msg').style.display = 'none';
+});
+
+document.getElementById('btn-install').addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            document.getElementById('btn-install').style.display = 'none';
+            document.getElementById('install-msg').style.display = 'block';
+        }
+        deferredPrompt = null;
+    }
+});
+
+// === EVENTS & INIT ===
+document.addEventListener('keydown', e => {
+    // Ignore physical keyboard if a modal is open
+    if (!document.getElementById('modal-overlay').classList.contains('hidden')) return;
+    handleInput(e.key);
+});
+
 document.getElementById('mode-selector').addEventListener('change', e => {
     currentMode = e.target.value;
     initGame();
 });
+
 document.getElementById('btn-stats').addEventListener('click', () => {
     const stats = JSON.parse(localStorage.getItem(`stats_${currentMode}`) || '{"played":0, "won":0, "streak":0}');
     alert(`${currentMode.toUpperCase()}\nJogos: ${stats.played}\nVitórias: ${stats.won}\nStreak: ${stats.streak}`);
+});
+
+// Settings Modal Logic
+const modalOverlay = document.getElementById('modal-overlay');
+const settingsModal = document.getElementById('settings-modal');
+
+document.getElementById('btn-settings').addEventListener('click', () => {
+    modalOverlay.classList.remove('hidden');
+    settingsModal.classList.remove('hidden');
+});
+
+document.querySelectorAll('.close-modal').forEach(btn => {
+    btn.addEventListener('click', () => {
+        modalOverlay.classList.add('hidden');
+        settingsModal.classList.add('hidden');
+    });
 });
 
 buildKeyboard();
