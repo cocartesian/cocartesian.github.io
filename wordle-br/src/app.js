@@ -272,6 +272,7 @@ document.getElementById('btn-install').addEventListener('click', async () => {
 });
 
 // === EVENTOS ===
+const modalOverlay = document.getElementById('modal-overlay');
 document.addEventListener('keydown', e => {
     if (!document.getElementById('modal-overlay').classList.contains('hidden')) return;
     handleInput(e.key);
