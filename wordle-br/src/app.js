@@ -106,34 +106,39 @@ function showMessage(msg) {
     setTimeout(() => div.remove(), 2000);
 }
 
-// === TECLADO VIRTUAL & FÍSICO ===
+// === LÓGICA DE AUTO-SUBMIT E TECLADO ===
+function attemptSubmit() {
+    if (state.currentGuess.length !== 5) return;
+
+    if (!DICTIONARY.validGuesses.includes(state.currentGuess)) {
+        showMessage("Palavra não reconhecida");
+        return;
+    }
+    
+    if (MODES_CONFIG[currentMode].hardMode) {
+        const validation = validateHardMode(state.currentGuess, state.guesses, state.answers[0]);
+        if (!validation.valid) {
+            showMessage(validation.error);
+            return;
+        }
+    }
+    
+    commitGuess();
+}
+
 function handleInput(key) {
     if (state.gameOver) return;
 
-    if (key === 'Enter') {
-        if (state.currentGuess.length !== 5) {
-            showMessage("Palavra muito curta");
-            return;
-        }
-        if (!DICTIONARY.validGuesses.includes(state.currentGuess)) {
-            showMessage("Palavra não reconhecida");
-            return;
-        }
-        
-        if (MODES_CONFIG[currentMode].hardMode) {
-            const validation = validateHardMode(state.currentGuess, state.guesses, state.answers[0]);
-            if (!validation.valid) {
-                showMessage(validation.error);
-                return;
-            }
-        }
-        commitGuess();
-    } else if (key === 'Backspace' || key === 'Del') {
+    if (key === 'Backspace' || key === 'Del') {
         state.currentGuess = state.currentGuess.slice(0, -1);
         renderBoards();
     } else if (/^[a-zA-Z]$/.test(key) && state.currentGuess.length < 5) {
         state.currentGuess += key.toLowerCase();
         renderBoards();
+        
+        if (state.currentGuess.length === 5) {
+            setTimeout(attemptSubmit, 50); 
+        }
     }
 }
 
@@ -141,24 +146,22 @@ function commitGuess() {
     state.guesses.push(state.currentGuess);
     const guess = state.currentGuess;
     state.currentGuess = "";
-    
-    let allWon = true;
-    let anyLost = false;
 
     state.answers.forEach((ans, idx) => {
         if (state.boardStatuses[idx] === 'won') return;
+
         if (guess === ans) {
             state.boardStatuses[idx] = 'won';
         } else if (state.guesses.length >= MODES_CONFIG[currentMode].guesses) {
             state.boardStatuses[idx] = 'lost';
-            anyLost = true;
-        } else {
-            allWon = false;
         }
     });
 
     renderBoards();
     updateKeyboardColors();
+
+    const allWon = state.boardStatuses.every(s => s === 'won');
+    const anyLost = state.boardStatuses.some(s => s === 'lost');
 
     if (allWon) {
         state.gameOver = true;
@@ -176,7 +179,7 @@ function commitGuess() {
 const keysLayout = [
     ['q','w','e','r','t','y','u','i','o','p'],
     ['a','s','d','f','g','h','j','k','l'],
-    ['Enter','z','x','c','v','b','n','m','Del']
+    ['z','x','c','v','b','n','m','Del']
 ];
 
 function buildKeyboard() {
@@ -222,8 +225,15 @@ function updateKeyboardColors() {
     });
 }
 
-// === ESTATISTICAS ===
+// === ESTATISTICAS E HISTÓRICO ===
 function saveStats(won) {
+    const runResult = {
+        date: new Date().toISOString(),
+        answers: state.answers,
+        guesses: state.guesses.length,
+        won: won
+    };
+
     let stats = JSON.parse(localStorage.getItem(`stats_${currentMode}`) || '{"played":0, "won":0, "streak":0}');
     stats.played++;
     if (won) {
@@ -233,6 +243,11 @@ function saveStats(won) {
         stats.streak = 0;
     }
     localStorage.setItem(`stats_${currentMode}`, JSON.stringify(stats));
+
+    let history = JSON.parse(localStorage.getItem(`history_${currentMode}`) || '[]');
+    history.unshift(runResult);
+    if (history.length > 50) history.pop();
+    localStorage.setItem(`history_${currentMode}`, JSON.stringify(history));
 }
 
 // === PWA INSTALLATION ===
@@ -256,9 +271,8 @@ document.getElementById('btn-install').addEventListener('click', async () => {
     }
 });
 
-// === EVENTS & INIT ===
+// === EVENTOS ===
 document.addEventListener('keydown', e => {
-    // Ignore physical keyboard if a modal is open
     if (!document.getElementById('modal-overlay').classList.contains('hidden')) return;
     handleInput(e.key);
 });
@@ -268,24 +282,59 @@ document.getElementById('mode-selector').addEventListener('change', e => {
     initGame();
 });
 
-document.getElementById('btn-stats').addEventListener('click', () => {
-    const stats = JSON.parse(localStorage.getItem(`stats_${currentMode}`) || '{"played":0, "won":0, "streak":0}');
-    alert(`${currentMode.toUpperCase()}\nJogos: ${stats.played}\nVitórias: ${stats.won}\nStreak: ${stats.streak}`);
-});
-
-// Settings Modal Logic
-const modalOverlay = document.getElementById('modal-overlay');
-const settingsModal = document.getElementById('settings-modal');
-
 document.getElementById('btn-settings').addEventListener('click', () => {
     modalOverlay.classList.remove('hidden');
-    settingsModal.classList.remove('hidden');
+    document.getElementById('settings-modal').classList.remove('hidden');
 });
 
-document.querySelectorAll('.close-modal').forEach(btn => {
+document.getElementById('btn-stats').addEventListener('click', () => {
+    document.getElementById('stats-title').textContent = `Estatísticas - ${currentMode.toUpperCase()}`;
+    
+    const stats = JSON.parse(localStorage.getItem(`stats_${currentMode}`) || '{"played":0, "won":0, "streak":0}');
+    const history = JSON.parse(localStorage.getItem(`history_${currentMode}`) || '[]');
+
+    document.getElementById('stats-summary').innerHTML = `
+        <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 10px;">
+            <div><div style="font-size:1.5rem; font-weight:bold;">${stats.played}</div><div style="font-size:0.8rem;">Jogos</div></div>
+            <div><div style="font-size:1.5rem; font-weight:bold;">${stats.won}</div><div style="font-size:0.8rem;">Vitórias</div></div>
+            <div><div style="font-size:1.5rem; font-weight:bold;">${stats.streak}</div><div style="font-size:0.8rem;">Streak</div></div>
+        </div>
+    `;
+
+    const historyList = document.getElementById('stats-history');
+    historyList.innerHTML = '';
+    
+    if (history.length === 0) {
+        historyList.innerHTML = '<p style="text-align:center; color: #818384; margin-top: 10px;">Nenhum jogo registrado ainda.</p>';
+    } else {
+        history.forEach(run => {
+            const item = document.createElement('div');
+            item.className = `history-item ${run.won ? 'won' : 'lost'}`;
+            
+            const dateObj = new Date(run.date);
+            const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth()+1).toString().padStart(2, '0')} ${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+            const words = run.answers.map(w => w.toUpperCase()).join(' / ');
+            const guessCount = run.won ? `${run.guesses} tent.` : 'X';
+            
+            item.innerHTML = `
+                <div>
+                    <div class="history-words">${words}</div>
+                    <div class="history-date">${dateStr}</div>
+                </div>
+                <div class="history-score">${guessCount}</div>
+            `;
+            historyList.appendChild(item);
+        });
+    }
+
+    modalOverlay.classList.remove('hidden');
+    document.getElementById('stats-modal').classList.remove('hidden');
+});
+
+document.querySelectorAll('.close-modal, #modal-overlay').forEach(btn => {
     btn.addEventListener('click', () => {
         modalOverlay.classList.add('hidden');
-        settingsModal.classList.add('hidden');
+        document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
     });
 });
 
